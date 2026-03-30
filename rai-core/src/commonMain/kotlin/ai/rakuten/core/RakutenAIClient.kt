@@ -42,16 +42,16 @@ import ai.rakuten.credentials.StaticCredentialManager
  * @param credentialManager The manager that owns this key — stored for observability.
  * @param additionalModels Extra [LLModel]-to-wire-string mappings not yet in [RakutenAIModels].
  */
-public class RakutenAIClient private constructor(
+class RakutenAIClient private constructor(
     apiKey: String,
-    public val credentialManager: RakutenAICredentialManager,
+    val credentialManager: RakutenAICredentialManager,
     additionalModels: Map<LLModel, String> = emptyMap(),
 ) : AnthropicLLMClient(
     apiKey   = apiKey,
     settings = RakutenAISettings.toAnthropicClientSettings(additionalModels),
 ) {
 
-    public companion object {
+    companion object {
 
         /**
          * Creates a [RakutenAIClient] by fetching the initial token from [credentialManager].
@@ -62,7 +62,7 @@ public class RakutenAIClient private constructor(
          * @param credentialManager Provides and manages the gateway API key.
          * @param additionalModels Extra model-to-wire-string mappings.
          */
-        public suspend fun create(
+        suspend fun create(
             credentialManager: RakutenAICredentialManager,
             additionalModels: Map<LLModel, String> = emptyMap(),
         ): RakutenAIClient = RakutenAIClient(
@@ -80,7 +80,7 @@ public class RakutenAIClient private constructor(
          * @param apiKey The `RAKUTEN_AI_GATEWAY_KEY` value. Must not be blank.
          * @param additionalModels Extra model-to-wire-string mappings.
          */
-        public operator fun invoke(
+        operator fun invoke(
             apiKey: String,
             additionalModels: Map<LLModel, String> = emptyMap(),
         ): RakutenAIClient = RakutenAIClient(

@@ -28,7 +28,7 @@ import kotlinx.coroutines.sync.withLock
  * @param refreshBlock Suspend lambda invoked whenever a new token is needed.
  *   Must return a non-blank string or throw if the refresh cannot be completed.
  */
-public class RefreshableCredentialManager(
+class RefreshableCredentialManager(
     initialToken: String,
     private val refreshBlock: suspend () -> String,
 ) : RakutenAICredentialManager {

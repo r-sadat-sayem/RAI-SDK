@@ -1,6 +1,7 @@
-package ai.rakuten.android
+package ai.rakuten.android.api.text
 
-import ai.rakuten.core.RakutenAISettings
+import ai.rakuten.android.ApiMessage
+import ai.rakuten.android.api.RakutenApiEndpoints
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -20,71 +21,47 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
 /**
- * A conversation message sent to / received from the Rakuten AI Gateway.
+ * HTTP service for Anthropic-compatible text completions via the Rakuten AI Gateway.
  *
- * @param role    `"user"` or `"assistant"`.
- * @param content Plain-text content of the message.
- */
-data class ApiMessage(
-    val role: String,
-    val content: String,
-)
-
-/**
- * Minimal HTTP client that calls the Rakuten AI Gateway `/v1/messages` endpoint,
- * matching exactly the following cURL:
+ * This is the canonical low-level service for chat/text calls. It separates the text
+ * API concern from image generation ([ai.rakuten.android.api.image.RakutenImageApiService]).
  *
- * ```
- * curl --location 'https://api.ai.public.rakuten-it.com/anthropic/v1/messages' \
- *   --header 'Authorization: {your_subscription_key}' \
- *   --header 'anthropic-version: 2023-06-01' \
- *   --header 'content-type: application/json' \
- *   --data '{
- *       "model": "claude-sonnet-4-6",
- *       "max_tokens": 1024,
- *       "messages": [{"role": "user", "content": "Hi Claude."}]
- *   }'
- * ```
- *
- * HTTP traffic is logged by the [OkHttpClient]'s [okhttp3.logging.HttpLoggingInterceptor]
- * (configured via [ai.rakuten.android.di.raiHttpModule]).
+ * For most use-cases prefer the agent-based API via `rakutenAIAgent { }` in `rai-core`.
+ * Use this service directly only when you need raw multi-turn chat without the agent graph.
  *
  * ### Usage
  * ```kotlin
- * // Inject OkHttpClient from Koin (includes logging interceptor):
- * val client = RakutenAIChatClient(apiKey = gatewayKey, httpClient = get())
+ * val service = RakutenTextApiService(apiKey = gatewayKey, httpClient = get())
  *
- * // Full response:
- * val reply = client.chat(listOf(ApiMessage("user", "Hello!")))
+ * // Batch response:
+ * val reply = service.complete(listOf(ApiMessage("user", "Hello!")))
  *
  * // Streaming:
- * client.chatStream(messages = history, onChunk = { chunk -> print(chunk) })
+ * service.stream(messages = history, onChunk = { chunk -> appendToUI(chunk) })
  * ```
  *
- * @param apiKey     Your `RAKUTEN_AI_GATEWAY_KEY`, placed in the `Authorization` header.
+ * @param apiKey     Your `RAKUTEN_AI_GATEWAY_KEY`.
  * @param httpClient OkHttp client — inject the Koin-provided instance so logging works.
  */
-class RakutenAIChatClient(
+public class RakutenTextApiService(
     private val apiKey: String,
     private val httpClient: OkHttpClient = OkHttpClient(),
 ) {
-    private val endpoint     = "${RakutenAISettings.BASE_URL}${RakutenAISettings.MESSAGES_PATH}"
+    private val endpoint = "${RakutenApiEndpoints.TEXT_BASE_URL}${RakutenApiEndpoints.TEXT_MESSAGES_PATH}"
     private val jsonMediaType = "application/json; charset=utf-8".toMediaType()
-
-    // ── Public API ────────────────────────────────────────────────────────────
 
     /**
      * Sends [messages] to the gateway and returns the complete assistant reply.
      *
      * @param messages     Conversation history, ordered oldest-first.
      * @param systemPrompt Optional system instruction placed before the first turn.
-     * @param model        Wire model name. Defaults to [RakutenAISettings.DEFAULT_WIRE_MODEL].
+     * @param model        Wire model name. Defaults to [RakutenApiEndpoints.DEFAULT_TEXT_MODEL].
      * @param maxTokens    Maximum tokens in the model response.
      */
-    suspend fun chat(
+    public suspend fun complete(
         messages: List<ApiMessage>,
         systemPrompt: String = "",
-        model: String = RakutenAISettings.DEFAULT_WIRE_MODEL,
+        model: String = RakutenApiEndpoints.DEFAULT_TEXT_MODEL,
         maxTokens: Int = 1024,
     ): String = withContext(Dispatchers.IO) {
         val call = httpClient.newCall(buildRequest(messages, systemPrompt, model, maxTokens, stream = false))
@@ -100,20 +77,19 @@ class RakutenAIChatClient(
      * Streams the assistant reply token-by-token via [onChunk] and returns the full text.
      *
      * Uses the Anthropic SSE streaming protocol (`"stream": true`). Each text delta is
-     * forwarded to [onChunk] as it arrives. The OkHttp call is cancelled automatically
-     * when the calling coroutine is cancelled.
+     * forwarded to [onChunk] as it arrives.
      *
      * @param messages     Conversation history, ordered oldest-first.
      * @param systemPrompt Optional system instruction.
-     * @param model        Wire model name. Defaults to [RakutenAISettings.DEFAULT_WIRE_MODEL].
+     * @param model        Wire model name. Defaults to [RakutenApiEndpoints.DEFAULT_TEXT_MODEL].
      * @param maxTokens    Maximum tokens in the model response.
-     * @param onChunk      Suspend callback invoked for each text token.
+     * @param onChunk      Suspend callback invoked per text token.
      * @return             Full accumulated assistant reply text.
      */
-    suspend fun chatStream(
+    public suspend fun stream(
         messages: List<ApiMessage>,
         systemPrompt: String = "",
-        model: String = RakutenAISettings.DEFAULT_WIRE_MODEL,
+        model: String = RakutenApiEndpoints.DEFAULT_TEXT_MODEL,
         maxTokens: Int = 1024,
         onChunk: suspend (String) -> Unit,
     ): String = withContext(Dispatchers.IO) {
@@ -174,7 +150,7 @@ class RakutenAIChatClient(
         return Request.Builder()
             .url(endpoint)
             .header("Authorization",     apiKey)
-            .header("anthropic-version", RakutenAISettings.API_VERSION)
+            .header("anthropic-version", RakutenApiEndpoints.TEXT_API_VERSION)
             .post(body)
             .build()
     }
@@ -187,7 +163,6 @@ class RakutenAIChatClient(
             ?.joinToString("") { it.jsonObject["text"]?.jsonPrimitive?.content ?: "" }
             ?: error("No text content in response: $json")
 
-    /** Cancels the OkHttp [call] when the surrounding coroutine is cancelled or completes. */
     private suspend fun cancelOnCoroutineCompletion(call: okhttp3.Call) {
         currentCoroutineContext()[Job]?.invokeOnCompletion { cause ->
             if (cause is CancellationException) call.cancel()

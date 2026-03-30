@@ -1,5 +1,6 @@
 package ai.rakuten.android.di
 
+import ai.rakuten.rai.android.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.koin.dsl.module
@@ -25,12 +26,14 @@ import java.util.concurrent.TimeUnit
  *   Use [HttpLoggingInterceptor.Level.BODY] for debug builds and
  *   [HttpLoggingInterceptor.Level.NONE] for release builds.
  */
-public fun raiHttpModule(
+fun raiHttpModule(
     logLevel: HttpLoggingInterceptor.Level = HttpLoggingInterceptor.Level.BODY,
 ) = module {
 
     single<HttpLoggingInterceptor> {
-        HttpLoggingInterceptor().apply { level = logLevel }
+        HttpLoggingInterceptor().apply {
+            level = if (BuildConfig.DEBUG) logLevel else HttpLoggingInterceptor.Level.NONE
+        }
     }
 
     single<OkHttpClient> {

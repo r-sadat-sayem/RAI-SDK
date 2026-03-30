@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * @param token The static `RAKUTEN_AI_GATEWAY_KEY` value. Must not be blank.
  */
-public class StaticCredentialManager(
+class StaticCredentialManager(
     private val token: String,
 ) : RakutenAICredentialManager {
 

@@ -20,14 +20,14 @@ import kotlinx.coroutines.flow.StateFlow
  * }
  * ```
  */
-public interface RakutenAICredentialManager {
+interface RakutenAICredentialManager {
 
     /**
      * Observable lifecycle state of the managed credential.
      *
      * Emits a new value whenever the state transitions (e.g. Valid → Refreshing → Valid).
      */
-    public val state: StateFlow<CredentialState>
+    val state: StateFlow<CredentialState>
 
     /**
      * Returns a valid gateway token, triggering a refresh first if the state is
@@ -38,7 +38,7 @@ public interface RakutenAICredentialManager {
      *
      * @throws Exception if the refresh attempt fails.
      */
-    public suspend fun getValidToken(): String
+    suspend fun getValidToken(): String
 
     /**
      * Marks the current token as [CredentialState.Expired].
@@ -47,5 +47,5 @@ public interface RakutenAICredentialManager {
      * [getValidToken] will invoke the refresh mechanism. The SDK calls this automatically
      * when using [RefreshableCredentialManager].
      */
-    public suspend fun invalidate()
+    suspend fun invalidate()
 }

@@ -50,7 +50,7 @@ import ai.rakuten.executor.RakutenAIStreamingPromptExecutor
  * @throws IllegalArgumentException if neither [RakutenAIAgentConfig.apiKey] nor
  *   [RakutenAIAgentConfig.credentialManager] is set, or if both are set simultaneously.
  */
-public suspend fun rakutenAIAgent(
+suspend fun rakutenAIAgent(
     configure: RakutenAIAgentConfig.() -> Unit,
 ): AIAgent<String, String> {
     val config = RakutenAIAgentConfig().apply(configure)

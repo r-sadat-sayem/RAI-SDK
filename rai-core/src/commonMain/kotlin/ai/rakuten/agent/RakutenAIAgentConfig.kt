@@ -22,7 +22,7 @@ import ai.rakuten.credentials.RakutenAICredentialManager
  * **Credential rule:** Set exactly one of [apiKey] or [credentialManager].
  * Setting both or neither throws [IllegalArgumentException] at build time.
  */
-public class RakutenAIAgentConfig {
+class RakutenAIAgentConfig {
 
     /**
      * Static gateway API key.
@@ -30,27 +30,27 @@ public class RakutenAIAgentConfig {
      * Wraps the value in a [ai.rakuten.credentials.StaticCredentialManager].
      * For production, prefer [credentialManager] with a [ai.rakuten.credentials.RefreshableCredentialManager].
      */
-    public var apiKey: String? = null
+    var apiKey: String? = null
 
     /**
      * Credential manager for production use — supports automatic token refresh.
      *
      * Mutually exclusive with [apiKey].
      */
-    public var credentialManager: RakutenAICredentialManager? = null
+    var credentialManager: RakutenAICredentialManager? = null
 
     /** LLM model to use for all calls in this agent. Defaults to [RakutenAIModels.Default]. */
-    public var model: LLModel = RakutenAIModels.Default
+    var model: LLModel = RakutenAIModels.Default
 
     /** System prompt placed at the start of every conversation turn. Empty by default. */
-    public var systemPrompt: String = ""
+    var systemPrompt: String = ""
 
     /**
      * Maximum number of LLM + tool-call cycles before the agent stops.
      *
      * Increase for tasks that require many sequential tool calls. Defaults to 50.
      */
-    public var maxIterations: Int = 50
+    var maxIterations: Int = 50
 
     /**
      * Tools available to the agent. Defaults to an empty registry.
@@ -60,7 +60,7 @@ public class RakutenAIAgentConfig {
      * toolRegistry = ToolRegistry { raiTool(WeatherTool) }
      * ```
      */
-    public var toolRegistry: ToolRegistry = ToolRegistryBuilder().build()
+    var toolRegistry: ToolRegistry = ToolRegistryBuilder().build()
 
     /**
      * Enables token-by-token streaming.
@@ -69,7 +69,7 @@ public class RakutenAIAgentConfig {
      * from the model. The agent still returns the complete final result from `run()`.
      * Defaults to `false`.
      */
-    public var streaming: Boolean = false
+    var streaming: Boolean = false
 
     /**
      * Suspend callback invoked per text token when [streaming] is `true`.
@@ -83,7 +83,7 @@ public class RakutenAIAgentConfig {
      * }
      * ```
      */
-    public var onStreamChunk: (suspend (String) -> Unit)? = null
+    var onStreamChunk: (suspend (String) -> Unit)? = null
 
     /**
      * Called when a tool invocation begins.
@@ -91,12 +91,12 @@ public class RakutenAIAgentConfig {
      * @param toolName The name of the tool being called.
      * @param toolArgs Raw JSON string of the arguments passed to the tool.
      */
-    public var onToolCall: (suspend (toolName: String, toolArgs: String) -> Unit)? = null
+    var onToolCall: (suspend (toolName: String, toolArgs: String) -> Unit)? = null
 
     /**
      * Called when the agent encounters an unrecoverable error during a run.
      *
      * @param cause The exception that terminated the agent execution.
      */
-    public var onError: (suspend (cause: Throwable) -> Unit)? = null
+    var onError: (suspend (cause: Throwable) -> Unit)? = null
 }

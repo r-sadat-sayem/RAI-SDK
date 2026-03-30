@@ -44,7 +44,7 @@ import org.koin.dsl.module
  *   [ai.rakuten.credentials.StaticCredentialManager] for testing,
  *   [ai.rakuten.credentials.RefreshableCredentialManager] for production.
  */
-public fun rakutenAICoreModule(
+fun rakutenAICoreModule(
     credentialManager: RakutenAICredentialManager,
 ) = module {
     single<RakutenAICredentialManager> { credentialManager }

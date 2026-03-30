@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
@@ -9,6 +10,15 @@ android {
 
     defaultConfig {
         minSdk = 26
+
+        buildConfigField("String", "RAKUTEN_TEXT_BASE_URL",  "\"https://api.ai.public.rakuten-it.com/anthropic/\"")
+        buildConfigField("String", "RAKUTEN_IMAGE_BASE_URL", "\"https://api.ai.public.rakuten-it.com/google-vertexai/v1/\"")
+        buildConfigField("String", "RAKUTEN_DEFAULT_TEXT_MODEL",  "\"claude-sonnet-4-6\"")
+        buildConfigField("String", "RAKUTEN_DEFAULT_IMAGE_MODEL", "\"gemini-3.1-flash-image-preview\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     compileOptions {

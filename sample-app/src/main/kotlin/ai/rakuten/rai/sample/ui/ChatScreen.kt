@@ -3,15 +3,22 @@
 package ai.rakuten.rai.sample.ui
 
 import ai.rakuten.android.viewmodel.RaiAgentState
+import ai.rakuten.rai.sample.AspectRatio
 import ai.rakuten.rai.sample.ChatMessage
 import ai.rakuten.rai.sample.ChatViewModel
 import ai.rakuten.rai.sample.MessageRole
 import ai.rakuten.rai.sample.ModelOption
 import ai.rakuten.rai.sample.ToolOption
+import ai.rakuten.rai.sample.ui.format.MarkdownText
+import ai.rakuten.rai.sample.ui.format.MessageContent
+import android.content.ContentValues
+import android.content.Context
+import android.os.Build
+import android.provider.MediaStore
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.CubicBezierEasing
-import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
@@ -33,6 +40,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -49,15 +57,17 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilterChip
@@ -70,6 +80,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -78,12 +89,20 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private val EaseOutCubic = CubicBezierEasing(0.33f, 1f, 0.68f, 1f)
 private val EaseInCubic  = CubicBezierEasing(0.32f, 0f, 0.67f, 0f)
@@ -95,10 +114,12 @@ fun ChatScreen(
     viewModel: ChatViewModel,
     onNavigateToSettings: () -> Unit,
 ) {
-    val state          by viewModel.state.collectAsStateWithLifecycle()
-    val messages       by viewModel.messages.collectAsStateWithLifecycle()
-    val selectedModel  by viewModel.selectedModel.collectAsStateWithLifecycle()
-    val enabledTools   by viewModel.enabledTools.collectAsStateWithLifecycle()
+    val state              by viewModel.state.collectAsStateWithLifecycle()
+    val messages           by viewModel.messages.collectAsStateWithLifecycle()
+    val selectedModel      by viewModel.selectedModel.collectAsStateWithLifecycle()
+    val enabledTools       by viewModel.enabledTools.collectAsStateWithLifecycle()
+    val isImageMode        by viewModel.isImageMode.collectAsStateWithLifecycle()
+    val selectedAspectRatio by viewModel.selectedAspectRatio.collectAsStateWithLifecycle()
 
     val isRunning = state is RaiAgentState.Running || state is RaiAgentState.Streaming
     val listState = rememberLazyListState()
@@ -149,7 +170,7 @@ fun ChatScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (messages.isEmpty()) {
-                    item { EmptyStateHint(Modifier.fillParentMaxSize()) }
+                    item { EmptyStateHint(isImageMode, Modifier.fillParentMaxSize()) }
                 }
                 itemsIndexed(messages, key = { i, _ -> i }) { _, message ->
                     ChatBubble(message)
@@ -172,12 +193,16 @@ fun ChatScreen(
                 ) + fadeOut(tween(150)),
             ) {
                 ModelToolsPanel(
-                    models        = viewModel.availableModels,
-                    tools         = viewModel.availableTools,
-                    selectedModel = selectedModel,
-                    enabledTools  = enabledTools,
-                    onModelSelect = viewModel::selectModel,
-                    onToolToggle  = viewModel::toggleTool,
+                    models               = viewModel.availableModels,
+                    tools                = viewModel.availableTools,
+                    selectedModel        = selectedModel,
+                    enabledTools         = enabledTools,
+                    isImageMode          = isImageMode,
+                    selectedAspectRatio  = selectedAspectRatio,
+                    onModelSelect        = viewModel::selectModel,
+                    onToolToggle         = viewModel::toggleTool,
+                    onImageModeToggle    = viewModel::toggleImageMode,
+                    onAspectRatioSelect  = viewModel::selectAspectRatio,
                 )
             }
 
@@ -185,16 +210,17 @@ fun ChatScreen(
 
             // ── Input bar ─────────────────────────────────────────────────────
             ChatInputBar(
-                text             = inputText,
-                onTextChange     = { inputText = it },
-                isRunning        = isRunning,
-                isPanelExpanded  = isPanelExpanded,
+                text              = inputText,
+                onTextChange      = { inputText = it },
+                isRunning         = isRunning,
+                isPanelExpanded   = isPanelExpanded,
+                isImageMode       = isImageMode,
                 selectedModelName = selectedModel.displayName,
-                enabledToolCount = enabledTools.size,
-                onPanelToggle    = { isPanelExpanded = !isPanelExpanded },
-                onSend           = {
+                enabledToolCount  = enabledTools.size,
+                onPanelToggle     = { isPanelExpanded = !isPanelExpanded },
+                onSend            = {
                     if (inputText.isNotBlank()) {
-                        viewModel.sendMessage(inputText.trim())
+                        viewModel.send(inputText.trim())
                         inputText = ""
                         isPanelExpanded = false
                     }
@@ -208,27 +234,30 @@ fun ChatScreen(
 // ── Empty state ───────────────────────────────────────────────────────────────
 
 @Composable
-private fun EmptyStateHint(modifier: Modifier = Modifier) {
+private fun EmptyStateHint(isImageMode: Boolean, modifier: Modifier = Modifier) {
     Column(
         modifier                = modifier,
         verticalArrangement     = Arrangement.Center,
         horizontalAlignment     = Alignment.CenterHorizontally,
     ) {
         Icon(
-            Icons.Filled.SmartToy,
+            if (isImageMode) Icons.Filled.AutoAwesome else Icons.Filled.SmartToy,
             contentDescription = null,
             tint     = MaterialTheme.colorScheme.outlineVariant,
             modifier = Modifier.size(64.dp),
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            "Start a conversation",
+            if (isImageMode) "Generate an image" else "Start a conversation",
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.outline,
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            "Pick a model and tools below, then type a message.",
+            if (isImageMode)
+                "Describe the image you'd like to create."
+            else
+                "Pick a model and tools below, then type a message.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.outlineVariant,
         )
@@ -247,13 +276,13 @@ private fun ChatBubble(message: ChatMessage, modifier: Modifier = Modifier) {
     }
 
     Row(
-        modifier            = modifier.fillMaxWidth(),
+        modifier              = modifier.fillMaxWidth(),
         horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
-        verticalAlignment   = Alignment.Bottom,
+        verticalAlignment     = Alignment.Bottom,
     ) {
         if (!isUser) {
             Box(
-                modifier        = Modifier
+                modifier         = Modifier
                     .size(32.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.secondaryContainer),
@@ -269,25 +298,9 @@ private fun ChatBubble(message: ChatMessage, modifier: Modifier = Modifier) {
             Spacer(Modifier.width(8.dp))
         }
 
-        Surface(
-            shape    = bubbleShape,
-            color    = if (isUser) MaterialTheme.colorScheme.primaryContainer
-                       else MaterialTheme.colorScheme.surfaceVariant,
-            modifier = Modifier.widthIn(max = 300.dp),
-        ) {
-            if (message.text.isEmpty() && !isUser) {
-                Box(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-                    BlinkingCursor()
-                }
-            } else {
-                Text(
-                    text     = message.text,
-                    style    = MaterialTheme.typography.bodyMedium,
-                    color    = if (isUser) MaterialTheme.colorScheme.onPrimaryContainer
-                               else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                )
-            }
+        when (val content = message.content) {
+            is MessageContent.GeneratedImage -> ImageBubble(content, bubbleShape)
+            else -> TextBubble(message, bubbleShape, isUser)
         }
 
         if (isUser) Spacer(Modifier.width(8.dp))
@@ -295,12 +308,115 @@ private fun ChatBubble(message: ChatMessage, modifier: Modifier = Modifier) {
 }
 
 @Composable
+private fun TextBubble(message: ChatMessage, shape: RoundedCornerShape, isUser: Boolean) {
+    Surface(
+        shape    = shape,
+        color    = if (isUser) MaterialTheme.colorScheme.primaryContainer
+                   else MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.widthIn(max = 300.dp),
+    ) {
+        when (val content = message.content) {
+            is MessageContent.PlainText -> {
+                if (content.value.isEmpty() && !isUser) {
+                    Box(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) { BlinkingCursor() }
+                } else {
+                    Text(
+                        text     = content.value,
+                        style    = MaterialTheme.typography.bodyMedium,
+                        color    = if (isUser) MaterialTheme.colorScheme.onPrimaryContainer
+                                   else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    )
+                }
+            }
+            is MessageContent.Markdown -> {
+                if (content.value.isEmpty() && !isUser) {
+                    Box(Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) { BlinkingCursor() }
+                } else {
+                    MarkdownText(
+                        text     = content.value,
+                        color    = if (isUser) MaterialTheme.colorScheme.onPrimaryContainer
+                                   else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    )
+                }
+            }
+            is MessageContent.Code -> {
+                CodeBubbleContent(content)
+            }
+            is MessageContent.GeneratedImage -> { /* handled by ImageBubble above */ }
+        }
+    }
+}
+
+@Composable
+private fun CodeBubbleContent(content: MessageContent.Code) {
+    Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+        if (content.language.isNotBlank()) {
+            Text(
+                text  = content.language,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+            )
+            Spacer(Modifier.height(4.dp))
+        }
+        Text(
+            text       = content.code,
+            style      = MaterialTheme.typography.bodySmall,
+            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            color      = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun ImageBubble(content: MessageContent.GeneratedImage, shape: RoundedCornerShape) {
+    val context = LocalContext.current
+    val scope   = rememberCoroutineScope()
+
+    Column(horizontalAlignment = Alignment.End) {
+        Surface(
+            shape    = shape,
+            modifier = Modifier.widthIn(max = 280.dp),
+        ) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(content.bytes)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "Generated image",
+                contentScale       = ContentScale.Fit,
+                modifier           = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(shape),
+            )
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        // Save to gallery button
+        SuggestionChip(
+            onClick = {
+                scope.launch {
+                    val saved = saveImageToGallery(context, content.bytes, content.mimeType)
+                    val msg = if (saved) "Image saved to gallery" else "Failed to save image"
+                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                }
+            },
+            label = { Text("Save", style = MaterialTheme.typography.labelSmall) },
+            icon  = { Icon(Icons.Filled.Download, null, Modifier.size(14.dp)) },
+        )
+    }
+}
+
+@Composable
 private fun BlinkingCursor() {
     val alpha by rememberInfiniteTransition(label = "cursor").animateFloat(
-        initialValue = 1f,
-        targetValue  = 0f,
+        initialValue  = 1f,
+        targetValue   = 0f,
         animationSpec = infiniteRepeatable(tween(500), RepeatMode.Reverse),
-        label        = "cursor_alpha",
+        label         = "cursor_alpha",
     )
     Box(
         modifier = Modifier
@@ -352,8 +468,12 @@ private fun ModelToolsPanel(
     tools: List<ToolOption>,
     selectedModel: ModelOption,
     enabledTools: Set<String>,
+    isImageMode: Boolean,
+    selectedAspectRatio: AspectRatio,
     onModelSelect: (ModelOption) -> Unit,
     onToolToggle: (String) -> Unit,
+    onImageModeToggle: () -> Unit,
+    onAspectRatioSelect: (AspectRatio) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -365,40 +485,85 @@ private fun ModelToolsPanel(
             modifier            = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text(
-                "Model",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(models) { model ->
-                    FilterChip(
-                        selected    = model == selectedModel,
-                        onClick     = { onModelSelect(model) },
-                        label       = { Text(model.displayName, style = MaterialTheme.typography.labelSmall) },
-                        leadingIcon = if (model == selectedModel) ({
-                            Icon(Icons.Filled.Check, null, Modifier.size(16.dp))
-                        }) else null,
-                    )
-                }
+            // ── Mode toggle (Chat / Image) ─────────────────────────────────────
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected    = !isImageMode,
+                    onClick     = { if (isImageMode) onImageModeToggle() },
+                    label       = { Text("Chat", style = MaterialTheme.typography.labelSmall) },
+                    leadingIcon = if (!isImageMode) ({
+                        Icon(Icons.Filled.Check, null, Modifier.size(16.dp))
+                    }) else null,
+                )
+                FilterChip(
+                    selected    = isImageMode,
+                    onClick     = { if (!isImageMode) onImageModeToggle() },
+                    label       = { Text("Image", style = MaterialTheme.typography.labelSmall) },
+                    leadingIcon = if (isImageMode) ({
+                        Icon(Icons.Filled.Check, null, Modifier.size(16.dp))
+                    }) else ({
+                        Icon(Icons.Filled.Image, null, Modifier.size(16.dp))
+                    }),
+                )
             }
 
-            if (tools.isNotEmpty()) {
+            if (isImageMode) {
+                // ── Aspect ratio selector ─────────────────────────────────────
                 Text(
-                    "Tools",
+                    "Aspect Ratio",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(tools) { tool ->
+                    items(AspectRatio.entries) { ratio ->
                         FilterChip(
-                            selected    = tool.name in enabledTools,
-                            onClick     = { onToolToggle(tool.name) },
-                            label       = { Text(tool.displayName, style = MaterialTheme.typography.labelSmall) },
-                            leadingIcon = if (tool.name in enabledTools) ({
+                            selected    = ratio == selectedAspectRatio,
+                            onClick     = { onAspectRatioSelect(ratio) },
+                            label       = { Text(ratio.label, style = MaterialTheme.typography.labelSmall) },
+                            leadingIcon = if (ratio == selectedAspectRatio) ({
                                 Icon(Icons.Filled.Check, null, Modifier.size(16.dp))
                             }) else null,
                         )
+                    }
+                }
+            } else {
+                // ── Text model selector ───────────────────────────────────────
+                Text(
+                    "Model",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(models) { model ->
+                        FilterChip(
+                            selected    = model == selectedModel,
+                            onClick     = { onModelSelect(model) },
+                            label       = { Text(model.displayName, style = MaterialTheme.typography.labelSmall) },
+                            leadingIcon = if (model == selectedModel) ({
+                                Icon(Icons.Filled.Check, null, Modifier.size(16.dp))
+                            }) else null,
+                        )
+                    }
+                }
+
+                // ── Tools selector ────────────────────────────────────────────
+                if (tools.isNotEmpty()) {
+                    Text(
+                        "Tools",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(tools) { tool ->
+                            FilterChip(
+                                selected    = tool.name in enabledTools,
+                                onClick     = { onToolToggle(tool.name) },
+                                label       = { Text(tool.displayName, style = MaterialTheme.typography.labelSmall) },
+                                leadingIcon = if (tool.name in enabledTools) ({
+                                    Icon(Icons.Filled.Check, null, Modifier.size(16.dp))
+                                }) else null,
+                            )
+                        }
                     }
                 }
             }
@@ -414,6 +579,7 @@ private fun ChatInputBar(
     onTextChange: (String) -> Unit,
     isRunning: Boolean,
     isPanelExpanded: Boolean,
+    isImageMode: Boolean,
     selectedModelName: String,
     enabledToolCount: Int,
     onPanelToggle: () -> Unit,
@@ -427,30 +593,32 @@ private fun ChatInputBar(
             .background(MaterialTheme.colorScheme.surface)
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
-        // ── Model / tool toggle chips ─────────────────────────────────────────
+        // ── Mode + model chips ────────────────────────────────────────────────
         Row(
             verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             SuggestionChip(
                 onClick = onPanelToggle,
-                label   = {
+                label = {
                     Text(
-                        selectedModelName,
+                        if (isImageMode) "Image Mode" else selectedModelName,
                         style    = MaterialTheme.typography.labelSmall,
                         maxLines = 1,
                     )
                 },
                 icon = {
                     Icon(
-                        if (isPanelExpanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                        if (isImageMode) Icons.Filled.AutoAwesome
+                        else if (isPanelExpanded) Icons.Filled.ExpandLess
+                        else Icons.Filled.ExpandMore,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp),
                     )
                 },
             )
             AnimatedVisibility(
-                visible = enabledToolCount > 0,
+                visible = enabledToolCount > 0 && !isImageMode,
                 enter   = fadeIn() + scaleIn(spring(Spring.DampingRatioMediumBouncy)),
                 exit    = fadeOut() + scaleOut(),
             ) {
@@ -462,9 +630,7 @@ private fun ChatInputBar(
                             style = MaterialTheme.typography.labelSmall,
                         )
                     },
-                    icon = {
-                        Icon(Icons.Filled.Tune, null, Modifier.size(16.dp))
-                    },
+                    icon = { Icon(Icons.Filled.Tune, null, Modifier.size(16.dp)) },
                 )
             }
         }
@@ -477,13 +643,15 @@ private fun ChatInputBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             OutlinedTextField(
-                value       = text,
+                value         = text,
                 onValueChange = onTextChange,
-                modifier    = Modifier.weight(1f),
-                placeholder = { Text("Message…") },
-                maxLines    = 5,
-                shape       = RoundedCornerShape(24.dp),
-                colors      = OutlinedTextFieldDefaults.colors(
+                modifier      = Modifier.weight(1f),
+                placeholder   = {
+                    Text(if (isImageMode) "Describe an image…" else "Message…")
+                },
+                maxLines = 5,
+                shape    = RoundedCornerShape(24.dp),
+                colors   = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor   = MaterialTheme.colorScheme.primary,
                     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                 ),
@@ -509,13 +677,65 @@ private fun ChatInputBar(
                     }
                 } else {
                     FilledIconButton(
-                        onClick  = onSend,
-                        enabled  = text.isNotBlank(),
+                        onClick = onSend,
+                        enabled = text.isNotBlank(),
                     ) {
-                        Icon(Icons.Filled.Send, contentDescription = "Send")
+                        Icon(
+                            if (isImageMode) Icons.Filled.AutoAwesome else Icons.Filled.Send,
+                            contentDescription = if (isImageMode) "Generate" else "Send",
+                        )
                     }
                 }
             }
         }
+    }
+}
+
+// ── Image save helper ─────────────────────────────────────────────────────────
+
+/**
+ * Saves [imageBytes] to the device's Pictures gallery.
+ *
+ * Uses [MediaStore] (no `WRITE_EXTERNAL_STORAGE` permission required on API 29+).
+ * On API 26–28 the permission is needed and should be requested before calling this.
+ *
+ * @return `true` if the image was saved successfully.
+ */
+private suspend fun saveImageToGallery(
+    context: Context,
+    imageBytes: ByteArray,
+    mimeType: String,
+): Boolean = withContext(Dispatchers.IO) {
+    try {
+        val extension = when {
+            mimeType.contains("png",  ignoreCase = true) -> "png"
+            mimeType.contains("webp", ignoreCase = true) -> "webp"
+            else -> "jpg"
+        }
+        val filename = "rai_image_${System.currentTimeMillis()}.$extension"
+
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, filename)
+            put(MediaStore.Images.Media.MIME_TYPE,    mimeType)
+            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/RAI")
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                put(MediaStore.Images.Media.IS_PENDING, 1)
+            }
+        }
+
+        val resolver = context.contentResolver
+        val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+            ?: return@withContext false
+
+        resolver.openOutputStream(uri)?.use { it.write(imageBytes) }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            values.clear()
+            values.put(MediaStore.Images.Media.IS_PENDING, 0)
+            resolver.update(uri, values, null, null)
+        }
+        true
+    } catch (_: Exception) {
+        false
     }
 }
