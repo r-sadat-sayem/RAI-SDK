@@ -90,7 +90,7 @@ class RakutenAIChatClient(
         val call = httpClient.newCall(buildRequest(messages, systemPrompt, model, maxTokens, stream = false))
         cancelOnCoroutineCompletion(call)
         call.execute().use { response ->
-            val body = response.body?.string() ?: error("Empty response (HTTP ${response.code})")
+            val body = response.body.string()
             if (!response.isSuccessful) error("HTTP ${response.code}: $body")
             parseFullResponse(body)
         }
@@ -122,7 +122,7 @@ class RakutenAIChatClient(
 
         val accumulated = StringBuilder()
         call.execute().use { response ->
-            val body = response.body ?: error("Empty body (HTTP ${response.code})")
+            val body = response.body
             if (!response.isSuccessful) error("HTTP ${response.code}: ${body.string()}")
 
             val source = body.source()

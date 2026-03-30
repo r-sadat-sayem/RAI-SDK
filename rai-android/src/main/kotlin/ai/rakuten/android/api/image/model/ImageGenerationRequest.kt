@@ -1,3 +1,5 @@
+@file:OptIn(kotlinx.serialization.InternalSerializationApi::class)
+
 package ai.rakuten.android.api.image.model
 
 import kotlinx.serialization.SerialName
@@ -18,21 +20,21 @@ import kotlinx.serialization.Serializable
  * ```
  */
 @Serializable
-public data class ImageGenerationRequest(
+data class ImageGenerationRequest(
     val contents: List<ImageRequestContent>,
     @SerialName("generationConfig") val generationConfig: ImageGenerationConfig,
 )
 
 /** A single conversation turn with one or more [parts]. */
 @Serializable
-public data class ImageRequestContent(
+data class ImageRequestContent(
     val role: String = "user",
     val parts: List<ImageRequestPart>,
 )
 
 /** A text part inside a [ImageRequestContent]. */
 @Serializable
-public data class ImageRequestPart(val text: String)
+data class ImageRequestPart(val text: String)
 
 /**
  * Generation parameters for image output.
@@ -42,7 +44,7 @@ public data class ImageRequestPart(val text: String)
  * @param candidateCount     Number of candidate images to generate.
  */
 @Serializable
-public data class ImageGenerationConfig(
+data class ImageGenerationConfig(
     @SerialName("responseModalities") val responseModalities: List<String> = listOf("IMAGE"),
     @SerialName("imageConfig") val imageConfig: ImageConfig? = null,
     @SerialName("candidateCount") val candidateCount: Int = 1,
@@ -54,6 +56,6 @@ public data class ImageGenerationConfig(
  * @param aspectRatio Requested aspect ratio, e.g. `"1:1"`, `"16:9"`, `"9:16"`, `"4:3"`.
  */
 @Serializable
-public data class ImageConfig(
+data class ImageConfig(
     @SerialName("aspectRatio") val aspectRatio: String = "1:1",
 )

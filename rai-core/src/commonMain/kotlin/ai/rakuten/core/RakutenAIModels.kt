@@ -75,7 +75,7 @@ object RakutenAIModels {
     val Default: LLModel = Claude4_6Sonnet
 
     /** Maps SDK [LLModel] identifiers → exact wire strings sent to the gateway. */
-    public val DEFAULT_MODEL_VERSIONS_MAP: Map<LLModel, String> = mapOf(
+    val DEFAULT_MODEL_VERSIONS_MAP: Map<LLModel, String> = mapOf(
         Claude4_6Sonnet to "claude-sonnet-4-6",
         Claude4_5Sonnet to "claude-sonnet-4-5-20250929",
         Claude4_5Haiku to "claude-haiku-4-5-20251001",

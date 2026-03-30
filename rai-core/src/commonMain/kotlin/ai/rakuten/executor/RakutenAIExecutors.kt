@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.onEach
  *
  * @param apiKey The `RAKUTEN_AI_GATEWAY_KEY` value.
  */
-public fun rakutenAIExecutor(apiKey: String): RakutenAIPromptExecutor =
+fun rakutenAIExecutor(apiKey: String): RakutenAIPromptExecutor =
     RakutenAIPromptExecutor(RakutenAIClient(apiKey))
 
 /**
@@ -33,7 +33,7 @@ public fun rakutenAIExecutor(apiKey: String): RakutenAIPromptExecutor =
  *
  * @param credentialManager Provides and manages the gateway API key.
  */
-public suspend fun rakutenAIExecutor(
+suspend fun rakutenAIExecutor(
     credentialManager: RakutenAICredentialManager,
 ): RakutenAIPromptExecutor =
     RakutenAIPromptExecutor(RakutenAIClient.create(credentialManager))
@@ -48,7 +48,7 @@ public suspend fun rakutenAIExecutor(
  * @param credentialManager Provides and manages the gateway API key.
  * @param onChunk Suspend callback invoked for each [StreamFrame.TextDelta].
  */
-public suspend fun rakutenAIStreamingExecutor(
+suspend fun rakutenAIStreamingExecutor(
     credentialManager: RakutenAICredentialManager,
     onChunk: suspend (String) -> Unit,
 ): RakutenAIStreamingPromptExecutor =
@@ -64,7 +64,7 @@ public suspend fun rakutenAIStreamingExecutor(
  *
  * Used when `streaming = false` (the default) in the agent builder.
  */
-public class RakutenAIPromptExecutor internal constructor(
+class RakutenAIPromptExecutor internal constructor(
     private val client: RakutenAIClient,
 ) : PromptExecutor() {
 
@@ -95,7 +95,7 @@ public class RakutenAIPromptExecutor internal constructor(
  * - **Tool-call responses**: streaming is bypassed for that turn; the full JSON is
  *   collected before returning, ensuring `execute()` always returns a valid tool call.
  */
-public class RakutenAIStreamingPromptExecutor internal constructor(
+class RakutenAIStreamingPromptExecutor internal constructor(
     private val client: RakutenAIClient,
     private val onChunk: suspend (String) -> Unit,
 ) : PromptExecutor() {

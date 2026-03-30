@@ -39,13 +39,13 @@ import kotlinx.coroutines.launch
  *      → Idle  (via cancel())
  * ```
  */
-public abstract class RaiAgentViewModel : ViewModel() {
+abstract class RaiAgentViewModel : ViewModel() {
 
     private val _state: MutableStateFlow<RaiAgentState> =
         MutableStateFlow(RaiAgentState.Idle)
 
     /** Observable state of the current agent run. Collect from your Fragment or Composable. */
-    public val state: StateFlow<RaiAgentState> = _state.asStateFlow()
+    val state: StateFlow<RaiAgentState> = _state.asStateFlow()
 
     private var currentJob: Job? = null
 
@@ -72,7 +72,7 @@ public abstract class RaiAgentViewModel : ViewModel() {
      *
      * @param input The user message or task description to pass to the agent.
      */
-    public fun send(input: String) {
+    fun send(input: String) {
         currentJob?.cancel()
         currentJob = viewModelScope.launch(Dispatchers.Default) {
             _state.value = RaiAgentState.Running
@@ -96,7 +96,7 @@ public abstract class RaiAgentViewModel : ViewModel() {
     /**
      * Cancels the current agent run (if any) and resets state to [RaiAgentState.Idle].
      */
-    public fun cancel() {
+    fun cancel() {
         currentJob?.cancel()
         _state.value = RaiAgentState.Idle
     }
