@@ -19,6 +19,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody
 
 /**
  * HTTP service for Anthropic-compatible text completions via the Rakuten AI Gateway.
@@ -43,7 +44,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
  * @param apiKey     Your `RAKUTEN_AI_GATEWAY_KEY`.
  * @param httpClient OkHttp client — inject the Koin-provided instance so logging works.
  */
-public class RakutenTextApiService(
+class RakutenTextApiService(
     private val apiKey: String,
     private val httpClient: OkHttpClient = OkHttpClient(),
 ) {
@@ -58,7 +59,7 @@ public class RakutenTextApiService(
      * @param model        Wire model name. Defaults to [RakutenApiEndpoints.DEFAULT_TEXT_MODEL].
      * @param maxTokens    Maximum tokens in the model response.
      */
-    public suspend fun complete(
+    suspend fun complete(
         messages: List<ApiMessage>,
         systemPrompt: String = "",
         model: String = RakutenApiEndpoints.DEFAULT_TEXT_MODEL,
@@ -86,7 +87,7 @@ public class RakutenTextApiService(
      * @param onChunk      Suspend callback invoked per text token.
      * @return             Full accumulated assistant reply text.
      */
-    public suspend fun stream(
+    suspend fun stream(
         messages: List<ApiMessage>,
         systemPrompt: String = "",
         model: String = RakutenApiEndpoints.DEFAULT_TEXT_MODEL,
@@ -98,7 +99,7 @@ public class RakutenTextApiService(
 
         val accumulated = StringBuilder()
         call.execute().use { response ->
-            val body = response.body ?: error("Empty body (HTTP ${response.code})")
+            val body: ResponseBody = response.body
             if (!response.isSuccessful) error("HTTP ${response.code}: ${body.string()}")
 
             val source = body.source()

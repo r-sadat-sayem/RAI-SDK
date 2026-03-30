@@ -45,8 +45,8 @@ abstract class RaiTool<TArgs>(
     argsType: TypeToken,
     name: String,
     description: String,
-    public val toolVersion: String = "1.0",
-    public val category: String = "general",
+    val toolVersion: String = "1.0",
+    val category: String = "general",
 ) : SimpleTool<TArgs>(
     argsType    = argsType,
     name        = name,

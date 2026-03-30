@@ -23,13 +23,13 @@ package ai.rakuten.android.viewmodel
  *      → Idle  (on cancel)
  * ```
  */
-public sealed class RaiAgentState {
+sealed class RaiAgentState {
 
     /** No run in progress. Initial state, and state after [RaiAgentViewModel.cancel]. */
-    public data object Idle : RaiAgentState()
+    data object Idle : RaiAgentState()
 
     /** Run started; no response text has arrived yet. */
-    public data object Running : RaiAgentState()
+    data object Running : RaiAgentState()
 
     /**
      * A streaming chunk has arrived from the model.
@@ -41,19 +41,19 @@ public sealed class RaiAgentState {
      *
      * @param accumulatedText All text tokens received in this run, concatenated.
      */
-    public data class Streaming(val accumulatedText: String) : RaiAgentState()
+    data class Streaming(val accumulatedText: String) : RaiAgentState()
 
     /**
      * The run completed successfully.
      *
      * @param result The final string output returned by the agent.
      */
-    public data class Done(val result: String) : RaiAgentState()
+    data class Done(val result: String) : RaiAgentState()
 
     /**
      * The run failed with an exception.
      *
      * @param cause The exception that terminated the agent run.
      */
-    public data class Error(val cause: Throwable) : RaiAgentState()
+    data class Error(val cause: Throwable) : RaiAgentState()
 }
