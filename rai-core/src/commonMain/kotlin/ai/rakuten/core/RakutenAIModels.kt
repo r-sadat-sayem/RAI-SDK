@@ -3,6 +3,7 @@ package ai.rakuten.core
 import ai.koog.prompt.llm.LLMCapability
 import ai.koog.prompt.llm.LLMProvider
 import ai.koog.prompt.llm.LLModel
+import ai.rakuten.core.RakutenAIModels.DEFAULT_MODEL_VERSIONS_MAP
 
 /**
  * Model definitions available through the Rakuten AI Gateway.

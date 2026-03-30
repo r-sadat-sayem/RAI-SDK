@@ -1,5 +1,8 @@
 package ai.rakuten.android.api
 
+import ai.rakuten.android.api.RakutenApiEndpoints.TEXT_BASE_URL
+
+
 /**
  * Central registry of all Rakuten AI Gateway API endpoints and default model names.
  *

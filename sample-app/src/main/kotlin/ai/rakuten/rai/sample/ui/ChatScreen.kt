@@ -79,8 +79,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -164,7 +164,9 @@ fun ChatScreen(
         ) {
             // ── Messages ──────────────────────────────────────────────────────
             LazyColumn(
-                modifier        = Modifier.weight(1f).fillMaxWidth(),
+                modifier        = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
                 state           = listState,
                 contentPadding  = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -432,7 +434,14 @@ private fun TypingIndicator(modifier: Modifier = Modifier) {
     val transition = rememberInfiniteTransition(label = "typing")
     Row(
         modifier = modifier
-            .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 16.dp, bottomStart = 16.dp, bottomEnd = 16.dp))
+            .clip(
+                RoundedCornerShape(
+                    topStart = 4.dp,
+                    topEnd = 16.dp,
+                    bottomStart = 16.dp,
+                    bottomEnd = 16.dp
+                )
+            )
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),

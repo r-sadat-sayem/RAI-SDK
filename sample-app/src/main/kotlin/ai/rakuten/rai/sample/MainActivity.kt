@@ -1,5 +1,7 @@
 package ai.rakuten.rai.sample
 
+import ai.rakuten.rai.sample.ui.ChatScreen
+import ai.rakuten.rai.sample.ui.theme.RaiSampleTheme
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -7,8 +9,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import ai.rakuten.rai.sample.ui.ChatScreen
-import ai.rakuten.rai.sample.ui.theme.RaiSampleTheme
 
 class MainActivity : ComponentActivity() {
 

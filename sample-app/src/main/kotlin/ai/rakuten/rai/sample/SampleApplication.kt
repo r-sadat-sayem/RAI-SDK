@@ -1,9 +1,9 @@
 package ai.rakuten.rai.sample
 
-import android.app.Application
-import ai.rakuten.android.di.rakutenAICoreModule
 import ai.rakuten.android.di.raiHttpModule
+import ai.rakuten.android.di.rakutenAICoreModule
 import ai.rakuten.credentials.StaticCredentialManager
+import android.app.Application
 import okhttp3.logging.HttpLoggingInterceptor
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger

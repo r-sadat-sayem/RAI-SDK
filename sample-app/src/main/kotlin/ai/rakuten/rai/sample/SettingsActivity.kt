@@ -1,9 +1,9 @@
 package ai.rakuten.rai.sample
 
+import ai.rakuten.rai.sample.databinding.ActivitySettingsBinding
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import ai.rakuten.rai.sample.databinding.ActivitySettingsBinding
 
 /**
  * Lets the user enter and persist their `RAKUTEN_AI_GATEWAY_KEY`.

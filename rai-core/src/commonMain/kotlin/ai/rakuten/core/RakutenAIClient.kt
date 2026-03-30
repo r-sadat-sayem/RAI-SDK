@@ -2,6 +2,7 @@ package ai.rakuten.core
 
 import ai.koog.prompt.executor.clients.anthropic.AnthropicLLMClient
 import ai.koog.prompt.llm.LLModel
+import ai.rakuten.core.RakutenAIClient.Companion.create
 import ai.rakuten.credentials.RakutenAICredentialManager
 import ai.rakuten.credentials.StaticCredentialManager
 

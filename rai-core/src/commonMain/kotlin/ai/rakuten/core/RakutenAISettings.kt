@@ -2,6 +2,7 @@ package ai.rakuten.core
 
 import ai.koog.prompt.executor.clients.anthropic.AnthropicClientSettings
 import ai.koog.prompt.llm.LLModel
+import ai.rakuten.core.RakutenAISettings.BASE_URL
 
 /**
  * Internal constants and factory helpers for the Rakuten AI Gateway connection.

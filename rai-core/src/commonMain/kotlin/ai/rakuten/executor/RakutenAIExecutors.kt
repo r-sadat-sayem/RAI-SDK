@@ -10,7 +10,6 @@ import ai.koog.prompt.message.ResponseMetaInfo
 import ai.koog.prompt.streaming.StreamFrame
 import ai.rakuten.core.RakutenAIClient
 import ai.rakuten.credentials.RakutenAICredentialManager
-import io.ktor.http.invoke
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.onEach
 
